@@ -146,8 +146,8 @@ Agent Flow can now watch a Cursor session. Set `agentVisualizer.runtime` (VS Cod
 main Cursor agent transcript from `$CURSOR_HOME` (default `~/.cursor`) and see it on the graph,
 labeled `CURSOR`.
 
-This is intentionally a **thin V1** per ADR-006 (`.compozy/tasks/cursor-runtime-integration/
-adrs/adr-006.md`):
+This is intentionally a **thin V1** per the project's internal ADR-006 design decision (main-attach
+only, no hierarchy/tools yet):
 
 - Main orchestrator session only — one `agent_spawn` (runtime: `cursor`) plus best-effort
   user/assistant `message` events. No tool-call parsing, no `subagents/` hierarchy, no reasoning/

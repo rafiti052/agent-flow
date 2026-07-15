@@ -4,6 +4,7 @@ import { JsonlEventSource } from './event-source'
 import { WebviewToExtensionMessage } from './protocol'
 import { startClaudeRuntime } from './claude-runtime'
 import { startCodexRuntime } from './codex-runtime'
+import { startCursorRuntime } from './cursor-runtime'
 import { promptHookSetupIfNeeded, configureClaudeHooks, isDisable1MContext } from './hooks-config'
 import { createLogger } from './logger'
 import type { AgentRuntime, AgentRuntimeMode } from './session-runtime'
@@ -41,8 +42,9 @@ async function startRuntimes(
     catch (err) { log.error('Codex runtime failed to start:', err); failures.push('codex') }
   }
   if (mode === 'cursor') {
-    // Cursor runtime start deferred to task_05; mode resolver wired here.
-    log.info('Cursor mode selected (startup deferred to task_05)')
+    log.info('Starting Cursor runtime...')
+    try { runtimes.push(startCursorRuntime(context)) }
+    catch (err) { log.error('Cursor runtime failed to start:', err); failures.push('cursor') }
   }
   return { runtimes, failures }
 }

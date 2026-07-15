@@ -15,6 +15,7 @@ import { readNewFileLines, foldPathCase } from '../extension/src/fs-utils'
 import { scanSubagentsDir, readSubagentNewLines } from '../extension/src/subagent-watcher'
 import { handlePermissionDetection } from '../extension/src/permission-detection'
 import { CodexSessionWatcher } from '../extension/src/codex-session-watcher'
+import { CursorSessionWatcher } from '../extension/src/cursor-session-watcher'
 import { resolveConfiguredMode } from '../extension/src/runtime-mode'
 import {
   INACTIVITY_TIMEOUT_MS, SCAN_INTERVAL_MS, ACTIVE_SESSION_AGE_S, POLL_FALLBACK_MS,
@@ -440,6 +441,31 @@ export async function createRelay(options: RelayOptions): Promise<Relay> {
     codexWatcher.start()
   }
 
+  // ─── Cursor runtime ───────────────────────────────────────────────────────
+  // Watch Cursor main-session transcripts. Started only for explicit `cursor`
+  // mode (never as part of `auto` — ADR-006). Construction/start is isolated
+  // in its own try/catch (unlike Codex above) because CursorSessionWatcher is
+  // new code exercised by fail-closed tests (IT-017/IT-020) that force it to
+  // throw — an uncaught throw here would propagate out of createRelay() and
+  // take the Claude/Codex watchers already running down with it.
+  // Like Codex, we don't subscribe to onSessionDetected — it fires together
+  // with the lifecycle 'started' event, so wiring both would double-broadcast
+  // session-started to SSE clients.
+  let cursorWatcher: CursorSessionWatcher | null = null
+  if (wantCursor) {
+    try {
+      cursorWatcher = new CursorSessionWatcher(workspace)
+      cursorWatcher.onEvent((event) => broadcastEvent(event))
+      cursorWatcher.onSessionLifecycle((lifecycle) => {
+        broadcastSessionLifecycle(lifecycle.type, lifecycle.sessionId, lifecycle.label)
+      })
+      cursorWatcher.start()
+    } catch (err) {
+      log('[relay] Cursor runtime failed to start:', err)
+      cursorWatcher = null
+    }
+  }
+
   const telemetry = options.telemetry
   const sessionStart = Date.now()
   let relayDisposed = false
@@ -497,6 +523,7 @@ export async function createRelay(options: RelayOptions): Promise<Relay> {
         })
       }
       if (codexWatcher) sessionList.push(...codexWatcher.getActiveSessions())
+      if (cursorWatcher) sessionList.push(...cursorWatcher.getActiveSessions())
       if (sessionList.length > 0) {
         sendSSE(res, { type: 'session-list', sessions: sessionList })
       }
@@ -543,6 +570,7 @@ export async function createRelay(options: RelayOptions): Promise<Relay> {
         }
       }
       codexWatcher?.dispose()
+      cursorWatcher?.dispose()
     },
   }
 }

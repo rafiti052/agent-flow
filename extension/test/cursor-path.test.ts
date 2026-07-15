@@ -90,4 +90,20 @@ describe('encodeCursorProjectPath', () => {
     // Trailing whitespace collapses to single hyphen
     assert.equal(result, 'Users-rafael-Dev-project-')
   })
+
+  // Windows path support: backslash separators and drive-letter colon
+  it('encodes a Windows path with backslash separators and a drive letter', () => {
+    const result = encodeCursorProjectPath('C:\\Users\\rafael\\agent-flow')
+    assert.equal(result, 'C-Users-rafael-agent-flow')
+  })
+
+  it('handles Windows paths with whitespace the same as POSIX ones', () => {
+    const result = encodeCursorProjectPath('C:\\Users\\rafael\\AI Knowledge')
+    assert.equal(result, 'C-Users-rafael-AI-Knowledge')
+  })
+
+  it('handles multiple leading backslashes on Windows (UNC-style)', () => {
+    const result = encodeCursorProjectPath('\\\\Users\\rafael\\project')
+    assert.equal(result, 'Users-rafael-project')
+  })
 })

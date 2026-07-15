@@ -39,25 +39,17 @@ describe('Runtime Mode Resolution', () => {
       assert.equal(resolveConfiguredMode('auto'), 'auto')
     })
 
-    // UT-021: unknown runtime string → safe default (auto without Cursor)
-    it('UT-021: unknown string maps to auto (safe default)', () => {
-      const mode = resolveConfiguredMode('nope')
-      // auto never wants cursor — computed before the narrowing assertion below
-      const wantsCursor = mode === 'cursor'
-      assert.equal(mode, 'auto')
-      assert.equal(wantsCursor, false)
-    })
-
-    it('UT-021: undefined maps to auto', () => {
-      assert.equal(resolveConfiguredMode(undefined), 'auto')
-    })
-
-    it('UT-021: empty string maps to auto', () => {
-      assert.equal(resolveConfiguredMode(''), 'auto')
-    })
-
-    it('UT-021: case-mismatched value maps to auto (no implicit case-folding)', () => {
-      assert.equal(resolveConfiguredMode('Cursor'), 'auto')
+    // UT-021: unknown, missing, empty, and case-mismatched input all take the
+    // same safe-default fallback branch — one test covers the branch across
+    // input shapes rather than one near-identical test per shape.
+    it('UT-021: unknown/missing/empty/case-mismatched values all map to auto (safe default, no cursor)', () => {
+      for (const raw of ['nope', undefined, '', 'Cursor']) {
+        const mode = resolveConfiguredMode(raw)
+        // computed before the assert.equal narrowing assertion below
+        const wantsCursor = mode === 'cursor'
+        assert.equal(mode, 'auto', `expected ${JSON.stringify(raw)} to resolve to auto`)
+        assert.equal(wantsCursor, false)
+      }
     })
 
     // UT-022: AGENT_FLOW_RUNTIME=cursor env var handling

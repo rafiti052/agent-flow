@@ -1,0 +1,5 @@
+not valid json at all
+{"role":"user","message":{"content":[{"type":"text","text":"Valid message"}]}}
+{incomplete json line
+{"role":"assistant","message":{"content":[{"type":"text","text":"Another valid message"}]}}
+this is just text

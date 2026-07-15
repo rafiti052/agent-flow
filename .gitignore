@@ -23,6 +23,9 @@ extension/.vscode/
 # Claude Code
 .claude/
 
+# Compozy workflow artifacts (local planning/task scaffolding)
+.compozy/
+
 # Subdirectory lock files (project uses pnpm workspace)
 extension/package-lock.json
 

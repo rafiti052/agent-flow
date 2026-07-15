@@ -1,0 +1,4 @@
+{"role":"user","message":{"content":[{"type":"text","text":"What files are in the project?"}]}}
+{"role":"assistant","message":{"content":[{"type":"text","text":"I can see the project contains TypeScript files, configuration files, and documentation."}]}}
+{"role":"user","message":{"content":[{"type":"text","text":"Help me refactor the main.ts file"}]}}
+{"role":"assistant","message":{"content":[{"type":"text","text":"I'll help you refactor main.ts by extracting helper functions and improving readability."}]}}

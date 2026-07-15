@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Cursor runtime support (opt-in, main session only)** — set `agentVisualizer.runtime` / `AGENT_FLOW_RUNTIME` to `"cursor"` to tail your workspace's main Cursor agent transcript from `~/.cursor` (respects `CURSOR_HOME`) (#67)
+  - Not included in `"auto"` — Cursor must be explicitly selected; `auto` remains Claude + Codex only
+  - Shows the main orchestrator session labeled `CURSOR` with best-effort user/assistant messages; no tool-call parsing or subagent hierarchy yet (follow-up)
+  - Read-only: Agent Flow only tails Cursor's own transcript files, never writes to `$CURSOR_HOME`
+  - Missing/unreadable Cursor data is idle-healthy, not an error — and never affects Claude/Codex watching
+
 ## 0.9.1
 
 - Fix: Claude Code session discovery on Windows — workspace-to-project-dir matching is now case-insensitive on win32 (#57, part of #4)

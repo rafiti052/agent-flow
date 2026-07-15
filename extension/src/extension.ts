@@ -4,20 +4,20 @@ import { JsonlEventSource } from './event-source'
 import { WebviewToExtensionMessage } from './protocol'
 import { startClaudeRuntime } from './claude-runtime'
 import { startCodexRuntime } from './codex-runtime'
+import { startCursorRuntime } from './cursor-runtime'
 import { promptHookSetupIfNeeded, configureClaudeHooks, isDisable1MContext } from './hooks-config'
 import { createLogger } from './logger'
 import type { AgentRuntime, AgentRuntimeMode } from './session-runtime'
+import { resolveConfiguredMode, type ConfiguredRuntimeMode } from './runtime-mode'
 
 const log = createLogger('Extension')
-
-type ConfiguredRuntimeMode = AgentRuntimeMode | 'auto'
 
 let eventSource: JsonlEventSource | undefined
 let runtimes: AgentRuntime[] = []
 
 function readConfiguredMode(): ConfiguredRuntimeMode {
   const raw = vscode.workspace.getConfiguration('agentVisualizer').get<string>('runtime', 'auto')
-  return raw === 'claude' || raw === 'codex' ? raw : 'auto'
+  return resolveConfiguredMode(raw)
 }
 
 interface StartRuntimesResult {
@@ -40,6 +40,11 @@ async function startRuntimes(
     log.info('Starting Codex runtime...')
     try { runtimes.push(startCodexRuntime(context)) }
     catch (err) { log.error('Codex runtime failed to start:', err); failures.push('codex') }
+  }
+  if (mode === 'cursor') {
+    log.info('Starting Cursor runtime...')
+    try { runtimes.push(startCursorRuntime(context)) }
+    catch (err) { log.error('Cursor runtime failed to start:', err); failures.push('cursor') }
   }
   return { runtimes, failures }
 }

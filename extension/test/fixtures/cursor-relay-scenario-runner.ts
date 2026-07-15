@@ -1,6 +1,6 @@
 /**
  * Standalone scenario runner spawned as a child process by
- * cursor-relay-wiring.test.ts. `createRelay()` guards against being called
+ * cursor-runtime-wiring.test.ts. `createRelay()` guards against being called
  * more than once per process (`relayCreated`), so each mode/env scenario
  * needs its own fresh process — this script is that process.
  *
@@ -8,7 +8,7 @@
  * Env:
  *   CURSOR_HOME          — passed straight through to CursorSessionWatcher
  *   AGENT_FLOW_RUNTIME    — read by resolveRuntimeMode() when no explicit arg
- *   FORCE_CURSOR_THROW    — if "1", CursorSessionWatcher.prototype.start throws (IT-017)
+ *   FORCE_CURSOR_THROW    — if "1", CursorSessionWatcher.prototype.start throws
  *
  * Prints one JSON line to stdout: { ok: true, chunks: string[] } on success,
  * or { ok: false, error: string } if createRelay() itself threw/rejected.
@@ -22,7 +22,7 @@ async function main(): Promise<void> {
 
   if (process.env.FORCE_CURSOR_THROW === '1') {
     CursorSessionWatcher.prototype.start = () => {
-      throw new Error('forced failure for IT-017/IT-020 test')
+      throw new Error('forced failure for test')
     }
   }
 

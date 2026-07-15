@@ -1,32 +1,21 @@
 /**
- * Wiring-layer coverage for task_05 (startCursorRuntime + extension/relay
- * start): dispose semantics, restart fan-out, and fail-closed behavior on an
+ * Wiring-layer coverage for startCursorRuntime + extension/relay start:
+ * dispose semantics, restart fan-out, and fail-closed behavior on an
  * unreadable Cursor root, plus end-to-end mode-gating through
- * `scripts/relay.ts`'s `createRelay()` (IT-010/012/014/017/020).
+ * `scripts/relay.ts`'s `createRelay()`.
  *
- * Two process boundaries are exercised in this one file because they cover
- * genuinely different failure surfaces, not the same ground twice:
- *   - In-process (`CursorSessionWatcher` directly): dispose/restart/
- *     unreadable-root behavior guaranteed by the watcher itself (task_04),
- *     which `cursor-runtime.ts` and `scripts/relay.ts` both depend on via a
- *     thin `dispose()` passthrough — a leak here would silently break the
- *     wiring's fail-closed/no-double-fan-out guarantees.
- *   - Cross-process (via `cursor-relay-scenario-runner.ts`): `createRelay()`
- *     throws if called more than once per process (`relayCreated` guard), so
- *     each mode-gating scenario needs its own fresh process. This verifies
- *     `scripts/relay.ts`'s actual `wantCursor` wiring end-to-end (explicit
- *     mode, env-var mode, negative/non-cursor mode, and fail-closed on a
- *     throwing watcher) — behavior the pure resolver tests in
- *     `runtime-mode.test.ts` don't reach, since they never touch `createRelay`.
+ * Two process boundaries are exercised here: in-process
+ * (`CursorSessionWatcher` directly) for dispose/restart/unreadable-root
+ * behavior, and cross-process (via `cursor-relay-scenario-runner.ts`) for
+ * `createRelay()`'s actual `wantCursor` wiring end-to-end — since
+ * `createRelay()` throws if called more than once per process, each
+ * mode-gating scenario needs its own fresh process.
  *
  * `auto`/`claude` are deliberately not exercised in the cross-process
  * scenarios: they start Claude's hook server and write a discovery file
  * under the real `~/.claude`, which would be an unsandboxed side effect from
- * an automated test. That mode never wanting Cursor is already exhaustively
- * covered at the pure-resolver level by UT-020/UT-021/UT-022/UT-028
- * (runtime-mode.test.ts); `codex` mode stands in here as a safe, fully
- * sandboxable "not cursor" case that still exercises the real `wantCursor`
- * gate inside createRelay() at runtime.
+ * an automated test. `codex` mode stands in as a safe, fully sandboxable
+ * "not cursor" case that still exercises the real `wantCursor` gate.
  */
 
 import { describe, it, before, after, afterEach } from 'node:test'
@@ -44,7 +33,7 @@ import { seedSession } from './fixtures/cursor-test-helpers'
 const VALID_LINE = '{"role":"user","message":{"content":[{"type":"text","text":"hello"}]}}'
 const NEXT_LINE = '{"role":"assistant","message":{"content":[{"type":"text","text":"hi there"}]}}'
 
-describe('Cursor runtime wiring (task_05)', () => {
+describe('Cursor runtime wiring', () => {
   let home: string
   let workspace: string
   const watchers: CursorSessionWatcher[] = []
@@ -69,7 +58,7 @@ describe('Cursor runtime wiring (task_05)', () => {
     return w
   }
 
-  describe('dispose mid-session (IT-011)', () => {
+  describe('dispose mid-session', () => {
     it('emits no further events after dispose, even when the file changes again', async () => {
       const filePath = seedSession(home, workspace, 'sid-dispose', VALID_LINE + '\n')
       const w = makeWatcher()
@@ -80,17 +69,16 @@ describe('Cursor runtime wiring (task_05)', () => {
       assert.ok(countAfterAttach > 0, 'expected the initial spawn/message events on attach')
 
       w.dispose()
-      // dispose() closes the fs.watch handle and clears the poll timer — a
-      // write after dispose must not reach the (now-torn-down) listener.
-      // Wait past POLL_FALLBACK_MS so a leaked poll timer (not just a leaked
-      // fs.watch handle) would also have a chance to wrongly fire.
+      // dispose() clears both the fs.watch handle and the poll timer; wait
+      // past POLL_FALLBACK_MS so a leaked poll timer would also have a
+      // chance to wrongly fire.
       fs.appendFileSync(filePath, NEXT_LINE + '\n')
       await new Promise(resolve => setTimeout(resolve, POLL_FALLBACK_MS + 200))
       assert.equal(events.length, countAfterAttach, 'no events should arrive after dispose()')
     })
   })
 
-  describe('restart — no double fan-out (IT-013)', () => {
+  describe('restart — no double fan-out', () => {
     it('a fresh watcher instance after dispose emits each line exactly once', async () => {
       const filePath = seedSession(home, workspace, 'sid-restart', VALID_LINE + '\n')
 
@@ -108,10 +96,9 @@ describe('Cursor runtime wiring (task_05)', () => {
 
       const beforeAppend = secondEvents.length
       fs.appendFileSync(filePath, NEXT_LINE + '\n')
-      // fs.watch fires asynchronously (near-instant locally, but not
-      // guaranteed) — poll past POLL_FALLBACK_MS so the watcher's own poll
-      // fallback is guaranteed to have run at least once even if fs.watch
-      // coalesces or misses the event on this filesystem.
+      // fs.watch fires asynchronously and isn't guaranteed on every FS —
+      // poll past POLL_FALLBACK_MS so the watcher's poll fallback has run
+      // at least once even if fs.watch misses the event.
       const deadline = Date.now() + POLL_FALLBACK_MS + 500
       while (secondEvents.length === beforeAppend && Date.now() < deadline) {
         await new Promise(resolve => setTimeout(resolve, 25))
@@ -127,7 +114,7 @@ describe('Cursor runtime wiring (task_05)', () => {
     })
   })
 
-  describe('unreadable Cursor root — fail closed (IT-020)', () => {
+  describe('unreadable Cursor root — fail closed', () => {
     it('stays idle-healthy (no throw, zero sessions) when the transcripts root is unreadable', (t) => {
       if (process.platform === 'win32') {
         t.skip('POSIX permission bits not meaningful on Windows')
@@ -151,11 +138,9 @@ describe('Cursor runtime wiring (task_05)', () => {
 // ─── Cross-process: mode gating end-to-end through createRelay() ──────────
 
 const RELAY_RUNNER = path.join(__dirname, 'fixtures', 'cursor-relay-scenario-runner.ts')
-// scripts/relay.ts pulls in extension/src/hook-server.ts, which imports the
-// real `vscode` module (only resolvable inside the extension host). The dev
-// relay build aliases that import to scripts/vscode-shim.js via esbuild
-// (scripts/build-relay.js); un-bundled here, we get the same effect via
-// NODE_PATH pointing at a `vscode.js` that re-exports the same shim.
+// scripts/relay.ts imports the real `vscode` module via hook-server.ts, only
+// resolvable inside the extension host; NODE_PATH points at a shim
+// `vscode.js` here, mirroring the esbuild alias the real dev-relay build uses.
 const VSCODE_SHIM_NODE_PATH = path.join(__dirname, 'fixtures', 'vscode-shim')
 const RELAY_VALID_LINE = '{"role":"user","message":{"content":[{"type":"text","text":"hello from cursor"}]}}'
 const RELAY_SESSION_ID = 'sid-relay-wiring'
@@ -189,7 +174,7 @@ function runScenario(opts: {
   return JSON.parse(lastLine)
 }
 
-describe('Cursor relay wiring — mode gating end-to-end (task_05)', () => {
+describe('Cursor relay wiring — mode gating end-to-end', () => {
   let cursorHome: string
   let workspace: string
 
@@ -206,28 +191,28 @@ describe('Cursor relay wiring — mode gating end-to-end (task_05)', () => {
     fs.rmSync(workspace, { recursive: true, force: true })
   })
 
-  it('IT-010/IT-014: explicit `cursor` mode constructs the watcher and lists the session', () => {
+  it('explicit `cursor` mode constructs the watcher and lists the session', () => {
     const result = runScenario({ workspace, cursorHome, runtimeArg: 'cursor' })
     assert.equal(result.ok, true, result.error)
     const joined = (result.chunks ?? []).join('\n')
     assert.ok(joined.includes(RELAY_SESSION_ID), 'expected the Cursor session id in the SSE session-list')
   })
 
-  it('IT-012: `AGENT_FLOW_RUNTIME=cursor` (no explicit option) constructs the watcher too', () => {
+  it('`AGENT_FLOW_RUNTIME=cursor` (no explicit option) constructs the watcher too', () => {
     const result = runScenario({ workspace, cursorHome, env: { AGENT_FLOW_RUNTIME: 'cursor' } })
     assert.equal(result.ok, true, result.error)
     const joined = (result.chunks ?? []).join('\n')
     assert.ok(joined.includes(RELAY_SESSION_ID), 'expected the Cursor session id via env-driven mode resolution')
   })
 
-  it('IT-010/IT-014: non-cursor mode (`codex`) never lists the Cursor session', () => {
+  it('non-cursor mode (`codex`) never lists the Cursor session', () => {
     const result = runScenario({ workspace, cursorHome, runtimeArg: 'codex' })
     assert.equal(result.ok, true, result.error)
     const joined = (result.chunks ?? []).join('\n')
     assert.ok(!joined.includes(RELAY_SESSION_ID), 'Cursor session must not appear when mode is not `cursor`')
   })
 
-  it('IT-017/IT-020: a throwing Cursor watcher fails closed — createRelay still succeeds', () => {
+  it('a throwing Cursor watcher fails closed — createRelay still succeeds', () => {
     const result = runScenario({
       workspace, cursorHome, runtimeArg: 'cursor',
       env: { FORCE_CURSOR_THROW: '1' },

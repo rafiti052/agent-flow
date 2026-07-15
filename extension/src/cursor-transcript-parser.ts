@@ -5,11 +5,8 @@
  * Cursor writes one JSON object per line, best-effort shaped as:
  *   { role: 'user' | 'assistant', message: { content: [{ type, text? }] } }
  *
- * V1 is thin by design (ADR-006): main session only, spawn + messages only.
- * No tool_call_*, model_detected, context_update, subagent_dispatch, or
- * hierarchy events are emitted here — those are explicit follow-up scope.
- *
- * Any line that fails to parse as JSON, or whose top-level shape isn't a
+ * Parses main-session spawn + user/assistant messages only. Any line that
+ * fails to parse as JSON, or whose top-level shape isn't a
  * user/assistant message (lifecycle/tool/model records Cursor may emit), is
  * skipped silently so later valid lines still emit. This mirrors
  * CodexRolloutParser's tolerant-parsing style.
@@ -84,8 +81,7 @@ export class CursorTranscriptParser {
    *
    * @param line - Raw JSONL line from a `<sid>.jsonl` transcript.
    * @param state - Per-session parse state (see {@link createCursorParseState}).
-   * @param agentName - Name attributed to emitted message events (V1: always
-   *   the orchestrator; threaded through for a future subagent follow-up).
+   * @param agentName - Name attributed to emitted message events (always the orchestrator).
    * @param sessionId - Optional session id forwarded to the delegate.
    */
   processLine(line: string, state: CursorParseState, agentName: string, sessionId?: string): void {
@@ -104,13 +100,13 @@ export class CursorTranscriptParser {
     // records still count as activity (mirrors CodexRolloutParser).
     this.ensureSpawned(state, sessionId)
 
-    if (role !== 'user' && role !== 'assistant') return // unknown top-level shape (UT-062)
+    if (role !== 'user' && role !== 'assistant') return // unknown top-level shape
 
     const text = flattenContent(message?.content)
     if (!text) return
 
     const hash = `${role}:${text.slice(0, HASH_PREFIX_MAX)}`
-    if (state.seenMessageHashes.has(hash)) return // UT-063
+    if (state.seenMessageHashes.has(hash)) return // dedup: already emitted this content
     state.seenMessageHashes.add(hash)
 
     this.delegate.emit({

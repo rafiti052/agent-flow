@@ -442,15 +442,10 @@ export async function createRelay(options: RelayOptions): Promise<Relay> {
   }
 
   // ─── Cursor runtime ───────────────────────────────────────────────────────
-  // Watch Cursor main-session transcripts. Started only for explicit `cursor`
-  // mode (never as part of `auto` — ADR-006). Construction/start is isolated
-  // in its own try/catch (unlike Codex above) because CursorSessionWatcher is
-  // new code exercised by fail-closed tests (IT-017/IT-020) that force it to
-  // throw — an uncaught throw here would propagate out of createRelay() and
-  // take the Claude/Codex watchers already running down with it.
-  // Like Codex, we don't subscribe to onSessionDetected — it fires together
-  // with the lifecycle 'started' event, so wiring both would double-broadcast
-  // session-started to SSE clients.
+  // Watch Cursor main-session transcripts, started only for explicit `cursor`
+  // mode. Construction/start is isolated in its own try/catch (unlike Codex
+  // above) so a throw here can't take the already-running Claude/Codex
+  // watchers down with it. Same onSessionDetected rationale as Codex above.
   let cursorWatcher: CursorSessionWatcher | null = null
   if (wantCursor) {
     try {
@@ -512,7 +507,7 @@ export async function createRelay(options: RelayOptions): Promise<Relay> {
         log(`[sse] Client disconnected (${sseClients.size} total)`)
       })
 
-      // Send current session list (Claude + Codex)
+      // Send current session list (Claude, Codex, Cursor)
       const sessionList: SessionInfo[] = []
       for (const session of sessions.values()) {
         if (!session.sessionDetected) continue

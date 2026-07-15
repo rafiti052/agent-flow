@@ -22,94 +22,92 @@ function resolveRuntimeMode(explicit?: string, env?: string): string {
 
 describe('Runtime Mode Resolution', () => {
   describe('resolveConfiguredMode (shared pure resolver)', () => {
-    // UT-020: mode resolver: cursor only (readConfiguredMode + env)
-    it('UT-020: resolves cursor', () => {
+    it('resolves cursor', () => {
       assert.equal(resolveConfiguredMode('cursor'), 'cursor')
     })
 
-    it('UT-020: resolves claude', () => {
+    it('resolves claude', () => {
       assert.equal(resolveConfiguredMode('claude'), 'claude')
     })
 
-    it('UT-020: resolves codex', () => {
+    it('resolves codex', () => {
       assert.equal(resolveConfiguredMode('codex'), 'codex')
     })
 
-    it('UT-020: resolves auto', () => {
+    it('resolves auto', () => {
       assert.equal(resolveConfiguredMode('auto'), 'auto')
     })
 
-    // UT-021: unknown, missing, empty, and case-mismatched input all take the
-    // same safe-default fallback branch — one test covers the branch across
+    // Unknown, missing, empty, and case-mismatched input all take the same
+    // safe-default fallback branch — one test covers the branch across
     // input shapes rather than one near-identical test per shape.
-    it('UT-021: unknown/missing/empty/case-mismatched values all map to auto (safe default, no cursor)', () => {
+    it('unknown/missing/empty/case-mismatched values all map to auto (safe default, no cursor)', () => {
       for (const raw of ['nope', undefined, '', 'Cursor']) {
         const mode = resolveConfiguredMode(raw)
-        // computed before the assert.equal narrowing assertion below
+        // Computed before assert.equal narrows the type of `mode` below.
         const wantsCursor = mode === 'cursor'
         assert.equal(mode, 'auto', `expected ${JSON.stringify(raw)} to resolve to auto`)
         assert.equal(wantsCursor, false)
       }
     })
 
-    // UT-022: AGENT_FLOW_RUNTIME=cursor env var handling
-    it('UT-022: env var cursor resolves relay mode to cursor', () => {
+    it('env var cursor resolves relay mode to cursor', () => {
       const mode = resolveRuntimeMode(undefined, 'cursor')
-      // cursor mode does not require Claude — computed before the narrowing assertion below
+      // cursor mode does not require Claude; computed before assert.equal narrows `mode` below.
       const wantClaude = mode === 'claude' || mode === 'auto'
       assert.equal(mode, 'cursor')
       assert.equal(wantClaude, false)
     })
 
-    it('UT-022: env var claude resolves relay mode to claude', () => {
+    it('env var claude resolves relay mode to claude', () => {
       assert.equal(resolveRuntimeMode(undefined, 'claude'), 'claude')
     })
 
-    it('UT-022: env var codex resolves relay mode to codex', () => {
+    it('env var codex resolves relay mode to codex', () => {
       assert.equal(resolveRuntimeMode(undefined, 'codex'), 'codex')
     })
 
-    it('UT-022: unknown env var falls back to auto', () => {
+    it('unknown env var falls back to auto', () => {
       assert.equal(resolveRuntimeMode(undefined, 'invalid'), 'auto')
     })
 
-    it('UT-022: explicit param overrides env var', () => {
+    it('explicit param overrides env var', () => {
       assert.equal(resolveRuntimeMode('cursor', 'claude'), 'cursor')
     })
 
-    it('UT-022: no explicit param and no env var falls back to auto', () => {
+    it('no explicit param and no env var falls back to auto', () => {
       assert.equal(resolveRuntimeMode(undefined, undefined), 'auto')
     })
   })
 
-  describe('Want-Cursor semantics (UT-028: auto / claude do not want/start Cursor)', () => {
-    it('UT-028: auto mode does not want cursor', () => {
+  describe('Want-Cursor semantics (auto / claude do not want/start Cursor)', () => {
+    it('auto mode does not want cursor', () => {
       const mode = resolveConfiguredMode('auto')
       assert.equal(mode === 'cursor', false)
     })
 
-    it('UT-028: claude mode does not want cursor', () => {
+    it('claude mode does not want cursor', () => {
       const mode = resolveConfiguredMode('claude')
       assert.equal(mode === 'cursor', false)
     })
 
-    it('UT-028: codex mode does not want cursor', () => {
+    it('codex mode does not want cursor', () => {
       const mode = resolveConfiguredMode('codex')
       assert.equal(mode === 'cursor', false)
     })
 
-    it('UT-028: cursor mode wants cursor', () => {
+    it('cursor mode wants cursor', () => {
       const mode = resolveConfiguredMode('cursor')
       assert.equal(mode === 'cursor', true)
     })
 
-    it('UT-028: unknown value defaults to auto, which does not want cursor', () => {
+    it('unknown value defaults to auto, which does not want cursor', () => {
       const mode = resolveConfiguredMode('unknown')
       assert.equal(mode === 'cursor', false)
     })
   })
 
-  describe('Claude/Codex auto semantics remain unchanged (ADR-006: no OR-with-auto for Cursor)', () => {
+  describe('Claude/Codex auto semantics remain unchanged (no OR-with-auto for Cursor)', () => {
     it('auto wants claude and codex but never cursor', () => {
       const mode = resolveConfiguredMode('auto')
       const wantClaude = mode === 'claude' || mode === 'auto'

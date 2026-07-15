@@ -4,7 +4,7 @@
  * Discovery, lifecycle (inactivity/rediscovery), dedup, and resilience are
  * exercised against a real temp `$CURSOR_HOME/projects/<encoded>/agent-transcripts`
  * tree — the same style CodexSessionWatcher would use, adapted for Cursor's
- * simpler single-root-per-workspace layout (ADR-003 / ADR-006).
+ * simpler single-root-per-workspace layout.
  *
  * Node's built-in timer mocking (`mock.timers`) fakes both `Date` and the
  * `setTimeout`/`setInterval` the watcher schedules, so inactivity (5 min) and
@@ -54,7 +54,7 @@ describe('CursorSessionWatcher', () => {
     return w
   }
 
-  describe('discovery (UT-002, IT-001)', () => {
+  describe('discovery', () => {
     it('finds a recently-modified session under the encoded project dir after start()', () => {
       seedSession(home, workspace, 'sid-discover-1', VALID_LINE + '\n')
       const w = makeWatcher()
@@ -73,7 +73,7 @@ describe('CursorSessionWatcher', () => {
     })
   })
 
-  describe('exclusion (IT-002)', () => {
+  describe('exclusion', () => {
     it('never lists another project\'s sessions', () => {
       const otherWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-flow-cursor-other-'))
       seedSession(home, workspace, 'sid-mine', VALID_LINE + '\n')
@@ -87,7 +87,7 @@ describe('CursorSessionWatcher', () => {
     })
   })
 
-  describe('boundary: stale session age (UT-004)', () => {
+  describe('boundary: stale session age', () => {
     it('does not attach a session whose mtime is older than ACTIVE_SESSION_AGE_S', () => {
       const filePath = seedSession(home, workspace, 'sid-stale', VALID_LINE + '\n')
       const oldTime = new Date(Date.now() - (ACTIVE_SESSION_AGE_S + 60) * 1000)
@@ -99,7 +99,7 @@ describe('CursorSessionWatcher', () => {
     })
   })
 
-  describe('boundary: empty project (UT-006)', () => {
+  describe('boundary: empty project', () => {
     it('reports zero sessions and stays active for an empty agent-transcripts dir', () => {
       const emptyWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-flow-cursor-empty-'))
       fs.mkdirSync(path.join(home, 'projects', encodeCursorProjectPath(emptyWorkspace), 'agent-transcripts'), { recursive: true })
@@ -119,7 +119,7 @@ describe('CursorSessionWatcher', () => {
     })
   })
 
-  describe('dedup (UT-005, IT-005)', () => {
+  describe('dedup', () => {
     it('does not create a second SessionInfo when the same session is rediscovered', () => {
       seedSession(home, workspace, 'sid-dedup', VALID_LINE + '\n')
       const w = makeWatcher()
@@ -136,7 +136,7 @@ describe('CursorSessionWatcher', () => {
     })
   })
 
-  describe('rediscovery after restart (IT-004)', () => {
+  describe('rediscovery after restart', () => {
     it('rediscovers an on-disk active session with a fresh watcher instance after dispose', () => {
       seedSession(home, workspace, 'sid-restart', VALID_LINE + '\n')
       const w1 = makeWatcher()
@@ -150,7 +150,7 @@ describe('CursorSessionWatcher', () => {
     })
   })
 
-  describe('lifecycle: inactivity (IT-003)', () => {
+  describe('lifecycle: inactivity', () => {
     it('marks a session ended after INACTIVITY_TIMEOUT_MS with no new writes', () => {
       seedSession(home, workspace, 'sid-inactive', VALID_LINE + '\n')
       const w = makeWatcher()
@@ -168,7 +168,7 @@ describe('CursorSessionWatcher', () => {
     })
   })
 
-  describe('resilience: corrupt content (IT-006, UT-007)', () => {
+  describe('resilience: corrupt content', () => {
     it('stays up on garbled content and still detects a valid sibling session', () => {
       seedSession(home, workspace, 'sid-corrupt', 'not json at all\n\x00\x01garbage\n')
       seedSession(home, workspace, 'sid-valid', VALID_LINE + '\n')
@@ -180,14 +180,13 @@ describe('CursorSessionWatcher', () => {
       const ids = w.getActiveSessions().map(s => s.id)
       assert.ok(ids.includes('sid-corrupt'))
       assert.ok(ids.includes('sid-valid'))
-      // The valid session still parses through to a message event.
       assert.ok(events.some(e => e.sessionId === 'sid-valid' && e.type === 'message'))
-      // The corrupt session gets no more than the spawn (first-valid-activity
-      // fires on any parseable-or-not line reaching the parser) — no throw either way.
+      // The corrupt session still gets its spawn event — first-valid-activity
+      // fires on any parseable-or-not line — but nothing more; no throw either way.
     })
   })
 
-  describe('recoverable read error (IT-015)', () => {
+  describe('recoverable read error', () => {
     it('resumes emitting lines after a transient read failure', () => {
       const filePath = seedSession(home, workspace, 'sid-recover', VALID_LINE + '\n')
       const w = makeWatcher()
@@ -218,19 +217,19 @@ describe('CursorSessionWatcher', () => {
     })
   })
 
-  describe('status labeling (UT-025, UT-026, UT-027)', () => {
-    it('UT-025: connection status includes a Cursor indicator and the home label', () => {
+  describe('status labeling', () => {
+    it('connection status includes a Cursor indicator and the home label', () => {
       const status = cursorConnectionStatus('/Users/example/.cursor')
       assert.match(status, /Cursor/)
       assert.ok(status.includes(cursorHomeLabel('/Users/example/.cursor')))
     })
 
-    it('UT-026: status is not conditioned on session count (no zero-session failure wording)', () => {
+    it('status is not conditioned on session count (no zero-session failure wording)', () => {
       const status = cursorConnectionStatus('/Users/example/.cursor')
       assert.ok(!/fail|disconnect/i.test(status))
     })
 
-    it('UT-027: Cursor remains distinguishable when joined with another runtime\'s status', () => {
+    it('Cursor remains distinguishable when joined with another runtime\'s status', () => {
       const combined = `Codex session watcher (~/.codex); ${cursorConnectionStatus('/Users/example/.cursor')}`
       assert.match(combined, /Cursor/)
       assert.match(combined, /Codex/)

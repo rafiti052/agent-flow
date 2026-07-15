@@ -2,17 +2,10 @@
  * Watches Cursor main-session transcripts at
  * $CURSOR_HOME/projects/<encoded-workspace>/agent-transcripts/<sid>/<sid>.jsonl
  *
- * Mirrors CodexSessionWatcher's discover/tail/lifecycle shape, but discovery
- * is far simpler: Cursor already binds sessions to a workspace via the
- * encoded project directory name (see cursor-path.ts / ADR-003), so there is
- * a single exact root to scan rather than Codex's cwd-matching sweep across
- * dated session directories. No sibling-project scanning, no case-fold
- * fallback, no `subagents/` watching (ADR-006: main attach only).
- *
- * A missing project directory (Cursor never wrote transcripts for this
- * workspace, or the encoder guessed wrong) is treated as idle-healthy: the
- * watcher stays running and simply reports zero sessions, rather than
- * failing closed.
+ * Cursor binds sessions to a workspace via the encoded project directory
+ * name (see cursor-path.ts), so there's a single exact root to scan rather
+ * than Codex's cwd-matching sweep across dated session directories. A
+ * missing project directory is treated as idle-healthy, not a failure.
  */
 
 import * as fs from 'fs'
@@ -47,9 +40,7 @@ export function cursorHomeLabel(home: string = cursorHome()): string {
 }
 
 /** Connection-status string for a Cursor runtime — always contains a
- *  `Cursor`-distinguishable substring and the resolved home label,
- *  independent of session count (UT-025–027). Consumed by the runtime
- *  factory (task_05) for `AgentRuntime.connectionStatus()`. */
+ *  `Cursor`-distinguishable substring and the resolved home label. */
 export function cursorConnectionStatus(home: string = cursorHome()): string {
   return `Cursor session watcher (${cursorHomeLabel(home)})`
 }
@@ -100,19 +91,14 @@ export class CursorSessionWatcher implements AgentSessionWatcher {
     },
   })
 
-  /** @param workspace Absolute workspace fsPath used to compute the encoded
-   *    project directory (see cursor-path.ts). Pass null/undefined to attach
-   *    to no project (idle-healthy — nothing matches).
-   *  @param homeOverride Injectable CURSOR_HOME for tests; defaults to the
-   *    CURSOR_HOME env var or ~/.cursor. */
+  /** @param workspace Absolute workspace fsPath (see cursor-path.ts); null/undefined attaches to no project (idle-healthy).
+   *  @param homeOverride Injectable CURSOR_HOME for tests; defaults to the CURSOR_HOME env var or ~/.cursor. */
   constructor(private readonly workspace?: string | null, homeOverride?: string) {
     this.home = homeOverride ?? cursorHome()
   }
 
   /** Exact `$CURSOR_HOME/projects/<encoded>/agent-transcripts` root for the
-   *  bound workspace, or null if no workspace is open. Recomputed on every
-   *  call rather than cached — cheap string work, and keeps behavior correct
-   *  if `workspace` is ever read before a late-attaching folder resolves. */
+   *  bound workspace, or null if none. Recomputed on every call, not cached, so a late-attaching workspace folder is picked up correctly. */
   private transcriptsRoot(): string | null {
     if (!this.workspace) return null
     return path.join(this.home, 'projects', encodeCursorProjectPath(this.workspace), 'agent-transcripts')
@@ -156,9 +142,8 @@ export class CursorSessionWatcher implements AgentSessionWatcher {
     const root = this.transcriptsRoot()
     if (!root) return // no workspace bound — idle healthy
 
-    // Watch the project's transcripts root so new session dirs are picked up
-    // quickly. The root may not exist yet (or ever, on an encoder miss) —
-    // that's idle-healthy too, not a hard fail; retry on the next scan tick.
+    // Watch the transcripts root for new session dirs; it may not exist yet —
+    // retry on the next scan tick.
     if (!this.rootWatcher && fs.existsSync(root)) {
       try {
         this.rootWatcher = fs.watch(root, () => this.scanForSessions())
@@ -167,10 +152,10 @@ export class CursorSessionWatcher implements AgentSessionWatcher {
 
     let entries: string[]
     try { entries = fs.readdirSync(root) }
-    catch { return } // missing/unreadable root — idle healthy (UT-006)
+    catch { return } // missing/unreadable root — idle healthy
 
     for (const sessionId of entries) {
-      if (this.sessions.has(sessionId)) continue // dedup repeat discovery (UT-005 / IT-005)
+      if (this.sessions.has(sessionId)) continue // dedup repeat discovery
 
       const filePath = path.join(root, sessionId, `${sessionId}.jsonl`)
       let stat: fs.Stats
@@ -178,7 +163,7 @@ export class CursorSessionWatcher implements AgentSessionWatcher {
       if (stat.size === 0) continue
 
       const ageS = (Date.now() - stat.mtimeMs) / 1000
-      if (ageS > ACTIVE_SESSION_AGE_S) continue // stale — not a live target (UT-004)
+      if (ageS > ACTIVE_SESSION_AGE_S) continue // stale — not a live target
 
       this.attachSession(sessionId, filePath, stat)
     }
@@ -228,7 +213,7 @@ export class CursorSessionWatcher implements AgentSessionWatcher {
 
     // Transient read errors (file briefly locked/removed mid-write) return
     // null and leave fileSize/fileTail untouched — the next watch/poll tick
-    // retries cleanly without losing or duplicating content (IT-015).
+    // retries cleanly without losing or duplicating content.
     const result = readNewFileLines(session.filePath, session.fileSize, session.fileTail)
     if (!result) return
     session.fileSize = result.newSize
@@ -245,7 +230,7 @@ export class CursorSessionWatcher implements AgentSessionWatcher {
 
     for (const line of result.lines) {
       // A single corrupt/garbled line must not take the session (or watcher)
-      // down — other valid sessions in the same project keep working (IT-006).
+      // down — other valid sessions in the same project keep working.
       try { this.parser.processLine(line, session.parseState, ORCHESTRATOR_NAME, sessionId) }
       catch (err) { log.debug('Parser threw on line:', err) }
     }

@@ -1,10 +1,10 @@
 /**
  * Unit tests for CursorTranscriptParser.
  *
- * Feeds the task_01 Cursor fixtures (and a few hand-crafted edge-case lines)
- * through the parser and asserts the resulting event stream. V1 is thin by
- * design (ADR-006): main session only, spawn + messages only — no
- * tool/model/context/hierarchy events.
+ * Feeds Cursor fixtures (and a few hand-crafted edge-case lines) through the
+ * parser and asserts the resulting event stream. V1 is thin by design: main
+ * session only, spawn + messages only — no tool/model/context/hierarchy
+ * events.
  */
 
 import { describe, it } from 'node:test'
@@ -40,7 +40,7 @@ function runFixture(name: string) {
 }
 
 describe('CursorTranscriptParser', () => {
-  describe('spawn (UT-061)', () => {
+  describe('spawn', () => {
     it('emits exactly one main agent_spawn on first valid activity, runtime=cursor', () => {
       const { events } = runFixture('main.jsonl')
       const spawns = events.filter(e => e.type === 'agent_spawn')
@@ -51,7 +51,7 @@ describe('CursorTranscriptParser', () => {
     })
   })
 
-  describe('messages (UT-040, UT-041)', () => {
+  describe('messages', () => {
     it('maps user text content to a message event with role=user', () => {
       const { events } = runFixture('main.jsonl')
       const userMessages = events.filter(e => e.type === 'message' && e.payload.role === 'user')
@@ -68,13 +68,12 @@ describe('CursorTranscriptParser', () => {
     })
   })
 
-  describe('resilience (UT-007, UT-062)', () => {
+  describe('resilience', () => {
     it('skips non-JSON / malformed lines without throwing; subsequent valid lines still emit', () => {
       assert.doesNotThrow(() => runFixture('malformed.jsonl'))
       const { events } = runFixture('malformed.jsonl')
       const messages = events.filter(e => e.type === 'message')
-      // Fixture: "not valid json" / valid user / "{incomplete json" / valid assistant / "just text"
-      // — only the two valid JSON lines should produce messages.
+      // Only the two valid JSON lines in the fixture should produce messages.
       assert.equal(messages.length, 2)
       assert.equal(messages[0].payload.content, 'Valid message')
       assert.equal(messages[1].payload.content, 'Another valid message')
@@ -91,7 +90,7 @@ describe('CursorTranscriptParser', () => {
     })
   })
 
-  describe('empty trail (UT-008)', () => {
+  describe('empty trail', () => {
     it('emits zero events for an empty file — no spawn, no subagent_dispatch', () => {
       const { events } = runFixture('empty.jsonl')
       assert.equal(events.length, 0)
@@ -99,7 +98,7 @@ describe('CursorTranscriptParser', () => {
     })
   })
 
-  describe('dedup (UT-063)', () => {
+  describe('dedup', () => {
     it('does not duplicate a replayed message line via seenMessageHashes', () => {
       const line = '{"role":"user","message":{"content":[{"type":"text","text":"repeat me"}]}}'
       const { events } = runLines([line, line, line])
@@ -108,7 +107,7 @@ describe('CursorTranscriptParser', () => {
     })
   })
 
-  describe('truncation (UT-045)', () => {
+  describe('truncation', () => {
     it('truncates oversized text to MESSAGE_MAX', () => {
       const oversized = 'x'.repeat(MESSAGE_MAX + 500)
       const line = JSON.stringify({ role: 'assistant', message: { content: [{ type: 'text', text: oversized }] } })
@@ -119,7 +118,7 @@ describe('CursorTranscriptParser', () => {
     })
   })
 
-  describe('redacted content (UT-047)', () => {
+  describe('redacted content', () => {
     it('passes [REDACTED] through literally rather than inventing prose', () => {
       const line = '{"role":"assistant","message":{"content":[{"type":"text","text":"[REDACTED]"}]}}'
       const { events } = runLines([line])
@@ -135,7 +134,7 @@ describe('CursorTranscriptParser', () => {
     })
   })
 
-  describe('ordering (UT-048)', () => {
+  describe('ordering', () => {
     it('emits events in non-decreasing processing order for lines 1..N', () => {
       const { events } = runFixture('main.jsonl')
       // spawn, then user, assistant, user, assistant — in fixture line order.
@@ -151,7 +150,7 @@ describe('CursorTranscriptParser', () => {
     })
   })
 
-  describe('no tool/hierarchy events (ADR-006)', () => {
+  describe('no tool/hierarchy events', () => {
     it('never emits tool_call_*, model_detected, context_update, or subagent_dispatch', () => {
       const { events } = runFixture('main.jsonl')
       const forbidden = new Set([

@@ -1,9 +1,9 @@
 /**
  * Pure runtime-presentation helpers — no canvas/React dependency — so spawn
  * discriminator mapping, assistant labels, and brand-mark selection can be
- * unit tested without a canvas harness (UT-030–UT-033, UT-035).
+ * unit tested without a canvas harness.
  *
- * ADR-006: Cursor is text-label only. `brandMark` must never fall through to
+ * Cursor is text-label only. `brandMark` must never fall through to
  * the Claude spark or the OpenAI mark for `runtime: 'cursor'`.
  */
 import type { Agent } from './agent-types'
@@ -30,7 +30,7 @@ export function assistantLabel(runtime: AgentRuntime | undefined): 'CLAUDE' | 'C
   return 'CLAUDE'
 }
 
-/** Which brand mark `drawAgentBrand` should paint. 'none' = no logo (Cursor, ADR-006 non-fallthrough). */
+/** Which brand mark `drawAgentBrand` should paint. 'none' = no logo (Cursor). */
 export function brandMark(runtime: AgentRuntime | undefined): 'claude-spark' | 'openai-logo' | 'none' {
   if (runtime === 'codex') return 'openai-logo'
   if (runtime === 'cursor') return 'none'

@@ -3,8 +3,8 @@
  *
  * Mirrors codex-runtime.ts: wires CursorSessionWatcher to the visualizer
  * panel and reports a connection status reflecting the watch root. Started
- * only when the configured mode is `cursor` (never as part of `auto`) —
- * see runtime-mode.ts / ADR-006.
+ * only when the configured mode is `cursor`, never as part of `auto` —
+ * see runtime-mode.ts.
  */
 
 import * as vscode from 'vscode'

@@ -47,7 +47,7 @@ export function drawOpenAILogo(ctx: CanvasRenderingContext2D, cx: number, cy: nu
   ctx.restore()
 }
 
-/** Pick the brand logo for the agent's runtime. Defaults to Claude; Cursor paints no logo (ADR-006). */
+/** Pick the brand logo for the agent's runtime. Defaults to Claude; Cursor paints no logo. */
 export function drawAgentBrand(
   ctx: CanvasRenderingContext2D,
   cx: number, cy: number, r: number, color: string,

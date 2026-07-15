@@ -5,6 +5,7 @@ import {
 } from '@/lib/agent-types'
 import { COLORS } from '@/lib/colors'
 import { AGENT_SPAWN_DISTANCE } from '@/lib/canvas-constants'
+import { resolveSpawnRuntime } from '@/lib/runtime-presentation'
 import { pushTimelineBlock, type ProcessEventContext, type MutableEventState } from './process-event'
 import { edgeId, asString, asBoolean } from './types'
 
@@ -19,7 +20,7 @@ export function handleAgentSpawn(
   const isMain = asBoolean(payload.isMain)
   const task = typeof payload.task === 'string' ? payload.task : undefined
   const model = typeof payload.model === 'string' ? payload.model : undefined
-  const runtime = payload.runtime === 'codex' ? 'codex' as const : undefined
+  const runtime = resolveSpawnRuntime(payload.runtime)
 
   // If the agent already exists (e.g. session resuming after inactivity),
   // reactivate it instead of replacing — preserves accumulated stats.

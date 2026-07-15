@@ -6,6 +6,7 @@ import {
 import { alphaHex, formatTokens } from '@/lib/utils'
 import { truncateText, drawHexagon, CLAUDE_SPARK_D, OPENAI_LOGO_D, OPENAI_LOGO_VIEWBOX } from './draw-misc'
 import { getAgentGlowSprite } from './render-cache'
+import { brandMark } from '@/lib/runtime-presentation'
 
 let _claudeSparkPath: Path2D | null = null
 export function getClaudeSparkPath() {
@@ -46,14 +47,15 @@ export function drawOpenAILogo(ctx: CanvasRenderingContext2D, cx: number, cy: nu
   ctx.restore()
 }
 
-/** Pick the brand logo for the agent's runtime. Defaults to Claude. */
+/** Pick the brand logo for the agent's runtime. Defaults to Claude; Cursor paints no logo (ADR-006). */
 export function drawAgentBrand(
   ctx: CanvasRenderingContext2D,
   cx: number, cy: number, r: number, color: string,
   runtime: Agent['runtime'],
 ) {
-  if (runtime === 'codex') drawOpenAILogo(ctx, cx, cy, r, color)
-  else drawClaudeSpark(ctx, cx, cy, r, color)
+  const mark = brandMark(runtime)
+  if (mark === 'openai-logo') drawOpenAILogo(ctx, cx, cy, r, color)
+  else if (mark === 'claude-spark') drawClaudeSpark(ctx, cx, cy, r, color)
 }
 
 export function drawContextComposition(

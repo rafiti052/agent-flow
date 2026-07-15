@@ -210,9 +210,10 @@ export function AgentVisualizer() {
   const selectedAgent = selection.selectedAgentId ? agents.get(selection.selectedAgentId) : null
   const selectedConversation = selection.selectedAgentId ? (conversations.get(selection.selectedAgentId) || []) : []
 
-  // Session runtime — drives the assistant label (CLAUDE vs CODEX) in transcript panels
+  // Session runtime — drives the assistant label (CLAUDE vs CODEX vs CURSOR) in transcript panels
   const sessionRuntime = useMemo(() => {
     for (const a of agents.values()) {
+      if (a.runtime === 'cursor') return 'cursor' as const
       if (a.runtime === 'codex') return 'codex' as const
     }
     return 'claude' as const

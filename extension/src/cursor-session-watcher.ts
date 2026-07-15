@@ -91,8 +91,7 @@ export class CursorSessionWatcher implements AgentSessionWatcher {
     },
   })
 
-  /** @param workspace Absolute workspace fsPath (see cursor-path.ts); null/undefined attaches to no project (idle-healthy).
-   *  @param homeOverride Injectable CURSOR_HOME for tests; defaults to the CURSOR_HOME env var or ~/.cursor. */
+  /** `workspace` unset attaches to no project (idle-healthy). `homeOverride` is injectable CURSOR_HOME for tests. */
   constructor(private readonly workspace?: string | null, homeOverride?: string) {
     this.home = homeOverride ?? cursorHome()
   }

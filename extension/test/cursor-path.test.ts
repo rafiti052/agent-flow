@@ -1,11 +1,4 @@
-/**
- * Unit tests for cursor path encoding.
- *
- * Tests the encodeCursorProjectPath function that maps absolute workspace
- * paths to Cursor's project directory names. Encoding rules:
- * - Drop leading separators (/)
- * - Replace / and whitespace with - (no leading - in result)
- */
+/** Unit tests for encodeCursorProjectPath (see src/cursor-path.ts for encoding rules). */
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -30,7 +23,6 @@ describe('encodeCursorProjectPath', () => {
   })
 
   it('produces deterministic encoding that does not invent sibling project names', () => {
-    // Encoding should be idempotent — calling twice on same input yields same output
     const path1 = '/Users/rafael/Dev/workspace-one'
     const path2 = '/Users/rafael/Dev/workspace-two'
 
@@ -68,7 +60,6 @@ describe('encodeCursorProjectPath', () => {
 
   it('handles trailing whitespace', () => {
     const result = encodeCursorProjectPath('/Users/rafael/Dev/project  ')
-    // Trailing whitespace collapses to single hyphen
     assert.equal(result, 'Users-rafael-Dev-project-')
   })
 

@@ -1,13 +1,9 @@
 /**
- * Unit tests for runtime mode resolution.
+ * Unit tests for runtime mode resolution — cursor recognition, safe default
+ * for unknown values, and want-cursor semantics (cursor mode only, not auto).
  *
- * Tests cover: cursor mode recognition, safe default for unknown values,
- * and want-cursor semantics (cursor mode only, not auto).
- *
- * `resolveConfiguredMode` is a pure function (no vscode / watcher
- * dependency) shared by `extension.ts` (config-driven) and
- * `scripts/relay.ts` (env-driven), so these tests exercise both surfaces'
- * resolution logic without needing a VS Code host.
+ * `resolveConfiguredMode` is a pure function shared by `extension.ts`
+ * (config-driven) and `scripts/relay.ts` (env-driven).
  */
 
 import { describe, it } from 'node:test'
@@ -44,7 +40,6 @@ describe('Runtime Mode Resolution', () => {
     it('unknown/missing/empty/case-mismatched values all map to auto (safe default, no cursor)', () => {
       for (const raw of ['nope', undefined, '', 'Cursor']) {
         const mode = resolveConfiguredMode(raw)
-        // Computed before assert.equal narrows the type of `mode` below.
         const wantsCursor = mode === 'cursor'
         assert.equal(mode, 'auto', `expected ${JSON.stringify(raw)} to resolve to auto`)
         assert.equal(wantsCursor, false)
@@ -53,7 +48,6 @@ describe('Runtime Mode Resolution', () => {
 
     it('env var cursor resolves relay mode to cursor', () => {
       const mode = resolveRuntimeMode(undefined, 'cursor')
-      // cursor mode does not require Claude; computed before assert.equal narrows `mode` below.
       const wantClaude = mode === 'claude' || mode === 'auto'
       assert.equal(mode, 'cursor')
       assert.equal(wantClaude, false)

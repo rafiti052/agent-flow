@@ -1,21 +1,13 @@
 /**
- * Wiring-layer coverage for startCursorRuntime + extension/relay start:
- * dispose semantics, restart fan-out, and fail-closed behavior on an
- * unreadable Cursor root, plus end-to-end mode-gating through
- * `scripts/relay.ts`'s `createRelay()`.
+ * Wiring-layer coverage: dispose semantics, restart fan-out, and fail-closed
+ * behavior on an unreadable Cursor root run in-process against
+ * `CursorSessionWatcher` directly. Mode gating through `createRelay()` runs
+ * cross-process instead (via `cursor-relay-scenario-runner.ts`), since
+ * `createRelay()` throws if called more than once per process.
  *
- * Two process boundaries are exercised here: in-process
- * (`CursorSessionWatcher` directly) for dispose/restart/unreadable-root
- * behavior, and cross-process (via `cursor-relay-scenario-runner.ts`) for
- * `createRelay()`'s actual `wantCursor` wiring end-to-end — since
- * `createRelay()` throws if called more than once per process, each
- * mode-gating scenario needs its own fresh process.
- *
- * `auto`/`claude` are deliberately not exercised in the cross-process
- * scenarios: they start Claude's hook server and write a discovery file
- * under the real `~/.claude`, which would be an unsandboxed side effect from
- * an automated test. `codex` mode stands in as a safe, fully sandboxable
- * "not cursor" case that still exercises the real `wantCursor` gate.
+ * `codex` mode stands in for "not cursor" in those cross-process scenarios —
+ * `auto`/`claude` would start Claude's hook server and touch the real
+ * `~/.claude`, an unsandboxed side effect we don't want from a test.
  */
 
 import { describe, it, before, after, afterEach } from 'node:test'

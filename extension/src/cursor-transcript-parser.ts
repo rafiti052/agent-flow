@@ -5,11 +5,9 @@
  * Cursor writes one JSON object per line, best-effort shaped as:
  *   { role: 'user' | 'assistant', message: { content: [{ type, text? }] } }
  *
- * Parses main-session spawn + user/assistant messages only. Any line that
- * fails to parse as JSON, or whose top-level shape isn't a
- * user/assistant message (lifecycle/tool/model records Cursor may emit), is
- * skipped silently so later valid lines still emit. This mirrors
- * CodexRolloutParser's tolerant-parsing style.
+ * Parses user/assistant messages only; unparseable or unknown-shaped lines
+ * (lifecycle/tool/model records Cursor may emit) are skipped silently, same
+ * tolerant style as CodexRolloutParser.
  */
 
 import { AgentEvent } from './protocol'
@@ -62,9 +60,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === 'object'
 }
 
-/** Flatten message content into a single trimmed string. Text-bearing blocks
- *  only — non-text blocks (and blocks with no `text`) contribute nothing, so
- *  we never invent prose for redacted/thinking-only segments. */
+/** Flatten message content into a single trimmed string. Non-text blocks contribute nothing. */
 function flattenContent(content: CursorContentBlock[] | string | undefined): string {
   if (typeof content === 'string') return content.trim()
   if (!Array.isArray(content)) return ''
@@ -76,14 +72,7 @@ function flattenContent(content: CursorContentBlock[] | string | undefined): str
 export class CursorTranscriptParser {
   constructor(private delegate: CursorParserDelegate) {}
 
-  /**
-   * Parse a single JSONL line. Silently skips unparseable/unknown lines.
-   *
-   * @param line - Raw JSONL line from a `<sid>.jsonl` transcript.
-   * @param state - Per-session parse state (see {@link createCursorParseState}).
-   * @param agentName - Name attributed to emitted message events (always the orchestrator).
-   * @param sessionId - Optional session id forwarded to the delegate.
-   */
+  /** Parse a single JSONL line. Silently skips unparseable/unknown lines. */
   processLine(line: string, state: CursorParseState, agentName: string, sessionId?: string): void {
     const trimmed = line.trim()
     if (!trimmed) return
@@ -95,9 +84,7 @@ export class CursorTranscriptParser {
     if (!isRecord(record)) return
     const { role, message } = record as CursorRecord
 
-    // First successfully-parsed JSON line is "first valid activity" — spawn
-    // fires once here, before shape-checking below, so unknown-but-valid
-    // records still count as activity (mirrors CodexRolloutParser).
+    // Any parseable line counts as activity, even unknown shapes (mirrors CodexRolloutParser).
     this.ensureSpawned(state, sessionId)
 
     if (role !== 'user' && role !== 'assistant') return // unknown top-level shape

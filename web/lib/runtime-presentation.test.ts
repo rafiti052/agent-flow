@@ -4,7 +4,6 @@ import { resolveSpawnRuntime, assistantLabel, brandMark } from './runtime-presen
 
 describe('runtime-presentation', () => {
   describe('resolveSpawnRuntime', () => {
-    // given payload.runtime === 'cursor', agent runtime field becomes 'cursor' (not undefined/claude)
     it('resolves cursor', () => {
       assert.equal(resolveSpawnRuntime('cursor'), 'cursor')
     })
@@ -30,7 +29,6 @@ describe('runtime-presentation', () => {
       assert.equal(resolveSpawnRuntime(null), undefined)
     })
 
-    // Cursor spawn path under test always sets runtime: 'cursor'; fixture main spawn never omits it
     it('cursor payload never resolves to undefined or a different runtime', () => {
       const resolved = resolveSpawnRuntime('cursor')
       assert.equal(resolved, 'cursor')
@@ -40,7 +38,6 @@ describe('runtime-presentation', () => {
   })
 
   describe('assistantLabel', () => {
-    // transcript/bubble label path resolves to CURSOR (not CLAUDE/CODEX) when runtime is cursor
     it('cursor resolves to CURSOR label', () => {
       assert.equal(assistantLabel('cursor'), 'CURSOR')
     })
@@ -57,7 +54,6 @@ describe('runtime-presentation', () => {
       assert.equal(assistantLabel(undefined), 'CLAUDE')
     })
 
-    // mapping two spawns (codex + cursor) yields two different runtime labels
     it('codex and cursor spawns yield different labels', () => {
       const codexLabel = assistantLabel(resolveSpawnRuntime('codex'))
       const cursorLabel = assistantLabel(resolveSpawnRuntime('cursor'))
@@ -68,7 +64,6 @@ describe('runtime-presentation', () => {
   })
 
   describe('brandMark', () => {
-    // brand selector for 'cursor' does not choose Claude spark or Codex/OpenAI mark
     it('cursor selects no logo (non-fallthrough)', () => {
       const mark = brandMark('cursor')
       assert.equal(mark, 'none')

@@ -41,8 +41,6 @@ export interface CursorParserDelegate {
   emit(event: AgentEvent, sessionId?: string): void
   /** Elapsed seconds since the session started. */
   elapsed(sessionId?: string): number
-  /** Called when a session label is derived from the first user message. */
-  setLabel?(label: string): void
 }
 
 // ─── Record shapes (structural typing, all fields optional) ────────────────

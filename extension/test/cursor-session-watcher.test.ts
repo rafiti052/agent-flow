@@ -25,18 +25,9 @@ import {
 import { encodeCursorProjectPath } from '../src/cursor-path'
 import { ACTIVE_SESSION_AGE_S, INACTIVITY_TIMEOUT_MS, POLL_FALLBACK_MS } from '../src/constants'
 import type { AgentEvent } from '../src/protocol'
+import { seedSession } from './fixtures/cursor-test-helpers'
 
 const VALID_LINE = '{"role":"user","message":{"content":[{"type":"text","text":"hello"}]}}'
-
-/** Build a temp $CURSOR_HOME with a `<sid>/<sid>.jsonl` under the encoded
- *  project dir for `workspace`, seeded with `content`. */
-function seedSession(home: string, workspace: string, sessionId: string, content: string): string {
-  const dir = path.join(home, 'projects', encodeCursorProjectPath(workspace), 'agent-transcripts', sessionId)
-  fs.mkdirSync(dir, { recursive: true })
-  const filePath = path.join(dir, `${sessionId}.jsonl`)
-  fs.writeFileSync(filePath, content)
-  return filePath
-}
 
 describe('CursorSessionWatcher', () => {
   let home: string

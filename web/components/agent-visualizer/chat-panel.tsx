@@ -2,7 +2,7 @@
 
 import { CARD, Z, type AgentState } from '@/lib/agent-types'
 import { COLORS, getStateColor } from '@/lib/colors'
-import { assistantLabel } from '@/lib/runtime-presentation'
+import { assistantLabel, type AgentRuntime } from '@/lib/runtime-presentation'
 import { TranscriptMessage } from './transcript-message'
 import type { ConversationMessage } from '@/hooks/simulation/types'
 import { PanelHeader, SlidingPanel, stopPropagationHandlers } from './shared-ui'
@@ -13,7 +13,7 @@ interface ChatPanelProps {
   agentName: string
   agentState: AgentState
   conversation: ConversationMessage[]
-  runtime?: 'claude' | 'codex' | 'cursor'
+  runtime?: AgentRuntime
   onClose: () => void
 }
 

@@ -39,17 +39,10 @@ import { CursorSessionWatcher } from '../src/cursor-session-watcher'
 import { encodeCursorProjectPath } from '../src/cursor-path'
 import { POLL_FALLBACK_MS } from '../src/constants'
 import type { AgentEvent } from '../src/protocol'
+import { seedSession } from './fixtures/cursor-test-helpers'
 
 const VALID_LINE = '{"role":"user","message":{"content":[{"type":"text","text":"hello"}]}}'
 const NEXT_LINE = '{"role":"assistant","message":{"content":[{"type":"text","text":"hi there"}]}}'
-
-function seedSession(home: string, workspace: string, sessionId: string, content: string): string {
-  const dir = path.join(home, 'projects', encodeCursorProjectPath(workspace), 'agent-transcripts', sessionId)
-  fs.mkdirSync(dir, { recursive: true })
-  const filePath = path.join(dir, `${sessionId}.jsonl`)
-  fs.writeFileSync(filePath, content)
-  return filePath
-}
 
 describe('Cursor runtime wiring (task_05)', () => {
   let home: string

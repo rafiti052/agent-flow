@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { Z, CARD } from '@/lib/agent-types'
 import { COLORS } from '@/lib/colors'
-import { assistantLabel } from '@/lib/runtime-presentation'
+import { assistantLabel, type AgentRuntime } from '@/lib/runtime-presentation'
 import { TranscriptMessage } from './transcript-message'
 import type { ConversationMessage } from '@/hooks/simulation/types'
 import { CloseButton, SlidingPanel, stopPropagationHandlers } from './shared-ui'
@@ -19,7 +19,7 @@ const TRANSCRIPT_INITIAL_VIEWPORT = 400
 interface TranscriptPanelProps {
   visible: boolean
   conversation: ConversationMessage[]
-  runtime?: 'claude' | 'codex' | 'cursor'
+  runtime?: AgentRuntime
   onClose: () => void
 }
 

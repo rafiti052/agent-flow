@@ -21,6 +21,7 @@ Claude Code is powerful, but its execution is a black box — you see the final 
 - **Claude Code + Codex**: Auto-detects sessions from both runtimes concurrently and shows them side-by-side, or restrict to one via the `agentVisualizer.runtime` setting
 - **Claude Code hooks**: Lightweight HTTP hook server receives events directly from Claude Code for zero-latency streaming
 - **Codex rollout tailing**: Reads `~/.codex/sessions/**/rollout-*.jsonl` (respects `CODEX_HOME`) and surfaces tool calls, reasoning, and authoritative token counts from Codex's own event stream
+- **Cursor session watching (opt-in)**: Set `agentVisualizer.runtime` (or `AGENT_FLOW_RUNTIME`) to `"cursor"` to tail your workspace's main Cursor agent transcript from `~/.cursor` and show it on the graph, labeled `CURSOR`
 - **Multi-session support**: Track multiple concurrent agent sessions with tabs
 - **Interactive canvas**: Pan, zoom, click agents and tool calls to inspect details
 - **Timeline & transcript panels**: Review the full execution timeline, file attention heatmap, and message transcript
@@ -63,14 +64,27 @@ Agent Flow automatically configures Claude Code hooks the first time you open th
 
 ### Runtime selection
 
-By default Agent Flow watches both Claude Code (`~/.claude/projects/`) and Codex (`~/.codex/sessions/`) concurrently in all three entry points (VS Code extension, `pnpm run dev`, `npx agent-flow-app`). Sessions are shown side-by-side and tagged by runtime. If you only use one, the other is a harmless no-op — no visible effect, no user action needed.
+By default (`"auto"`) Agent Flow watches both Claude Code (`~/.claude/projects/`) and Codex (`~/.codex/sessions/`) concurrently in all three entry points (VS Code extension, `pnpm run dev`, `npx agent-flow-app`). Sessions are shown side-by-side and tagged by runtime. If you only use one, the other is a harmless no-op — no visible effect, no user action needed. **`auto` does not include Cursor** — Cursor is opt-in only (see below).
 
 To restrict to one runtime:
 
-- **VS Code extension:** set `agentVisualizer.runtime` to `"auto"` / `"claude"` / `"codex"` in your settings
-- **`pnpm run dev` and `npx agent-flow-app`:** set the `AGENT_FLOW_RUNTIME` environment variable to `claude` or `codex` (defaults to watching both)
+- **VS Code extension:** set `agentVisualizer.runtime` to `"auto"` / `"claude"` / `"codex"` / `"cursor"` in your settings
+- **`pnpm run dev` and `npx agent-flow-app`:** set the `AGENT_FLOW_RUNTIME` environment variable to `claude`, `codex`, or `cursor` (defaults to `auto`, i.e. Claude + Codex)
 
 For non-default Codex installs, set the `CODEX_HOME` environment variable.
+
+#### Cursor (opt-in)
+
+Setting the runtime to `"cursor"` makes Agent Flow read your **local** `$CURSOR_HOME` (default `~/.cursor`) agent transcripts, read-only, to tail the main Cursor agent session for your open workspace. This is:
+
+- **Opt-in** — never enabled by `auto`; you must explicitly select `cursor` mode
+- **Killable** — switch `agentVisualizer.runtime` / `AGENT_FLOW_RUNTIME` away from `cursor` and Agent Flow stops reading Cursor data immediately, with no other setup or cleanup step
+- **Read-only** — Agent Flow only tails Cursor's own transcript files; it never writes to `$CURSOR_HOME` or talks to Cursor over any other channel
+- **No first-run prompt** — there's no modal or dialog gating this; it's a plain settings/env toggle like the other runtimes
+
+V1 shows the main orchestrator session only (labeled `CURSOR`) with best-effort user/assistant messages; subagent hierarchy under Cursor is not yet implemented (tracked as a follow-up).
+
+For non-default Cursor installs, set the `CURSOR_HOME` environment variable.
 
 ### JSONL Event Log
 
@@ -98,7 +112,7 @@ You can also point Agent Flow at a JSONL event log file:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `agentVisualizer.runtime` | `"auto"` | Which agent runtime(s) to watch: `"auto"` (both), `"claude"`, or `"codex"` |
+| `agentVisualizer.runtime` | `"auto"` | Which agent runtime(s) to watch: `"auto"` (Claude + Codex), `"claude"`, `"codex"`, or `"cursor"` (opt-in, not included in `auto`) |
 | `agentVisualizer.devServerPort` | `0` | Development server port (0 = production mode) |
 | `agentVisualizer.eventLogPath` | `""` | Path to a JSONL event log file to watch |
 | `agentVisualizer.autoOpen` | `false` | Auto-open when an agent session starts |
@@ -158,6 +172,11 @@ paths, tool calls, user info, and environment variables are never sent.
   in [scripts/telemetry.ts](scripts/telemetry.ts)
 - **Reset your anonymous identity:** delete `~/.agent-flow/installation-id` —
   a fresh random UUIDv4 will be generated on next run
+
+Separately from telemetry: local session data (Claude Code, Codex, and —
+opt-in only — Cursor transcripts) is read from disk to render the
+visualization and is never transmitted anywhere by Agent Flow. See
+[Cursor (opt-in)](#cursor-opt-in) above for the Cursor-specific disclosure.
 
 
 ## License

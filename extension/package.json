@@ -14,7 +14,7 @@
     "vscode": "^1.85.0"
   },
   "categories": ["Visualization", "Other"],
-  "keywords": ["llm", "agent", "claude", "codex", "ai", "visualization", "orchestration"],
+  "keywords": ["llm", "agent", "claude", "codex", "cursor", "ai", "visualization", "orchestration"],
   "activationEvents": [
     "onWebviewPanel:agentVisualizer"
   ],
@@ -54,11 +54,12 @@
       "properties": {
         "agentVisualizer.runtime": {
           "type": "string",
-          "enum": ["auto", "claude", "codex"],
+          "enum": ["auto", "claude", "codex", "cursor"],
           "enumDescriptions": [
             "Watch both Claude Code and Codex sessions concurrently (default)",
             "Watch only Claude Code sessions",
-            "Watch only Codex sessions"
+            "Watch only Codex sessions",
+            "Watch only Cursor sessions"
           ],
           "default": "auto",
           "description": "Which agent runtime(s) to watch. In auto mode, runtimes you don't use are harmless no-ops (no session directory = nothing to scan)."
